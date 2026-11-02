@@ -24,6 +24,22 @@ def save_state(state: dict) -> None:
     STATE_FILE.write_text(json.dumps(state))
 
 
+def check_alert(price: int, state: dict, threshold: int) -> str | None:
+    """@everyone text when the price first drops below `threshold`, else None.
+
+    Pings once per drop: it re-arms only after the price goes back above the threshold,
+    so the channel isn't pinged every hour while the price stays low.
+    """
+    if threshold <= 0:
+        return None
+    below = price < threshold
+    already_alerted = state.get("alerted_below", False)
+    state["alerted_below"] = below
+    if below and not already_alerted:
+        return f"@everyone 🚨 Gold bars are below **{threshold:,}** cash! Now **{price:,}** per bar."
+    return None
+
+
 def pct(change: float | None) -> str:
     if change is None:
         return "n/a"

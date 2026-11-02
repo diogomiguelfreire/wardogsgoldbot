@@ -10,7 +10,7 @@ from discord import app_commands
 from discord.ext import tasks
 from dotenv import load_dotenv
 
-from message import build_message, load_state, save_state
+from message import build_message, check_alert, load_state, save_state
 
 load_dotenv()
 TOKEN = os.environ["DISCORD_TOKEN"]
@@ -18,6 +18,8 @@ CHANNEL_ID = int(os.environ["CHANNEL_ID"])
 CHART_DAYS = int(os.getenv("CHART_DAYS", "30"))
 # "true" = skip the hourly post when the price hasn't moved since the last one.
 ONLY_ON_CHANGE = os.getenv("ONLY_POST_ON_CHANGE", "false").lower() == "true"
+# Ping @everyone when the price drops below this (0 turns the alert off).
+ALERT_BELOW = int(os.getenv("ALERT_BELOW", "200000"))
 
 EVERY_HOUR = [time(hour=h, minute=0, tzinfo=timezone.utc) for h in range(24)]
 RANGES = {"7d": 7, "30d": 30, "90d": 90, "all": None}
@@ -54,7 +56,13 @@ class GoldBot(discord.Client):
         if ONLY_ON_CHANGE and last == market.current:
             log.info("Price unchanged at %s, skipping post", market.current)
             return
-        await channel.send(embed=embed, file=file)
+        alert = check_alert(market.current, state, ALERT_BELOW)
+        await channel.send(
+            content=alert,
+            embed=embed,
+            file=file,
+            allowed_mentions=discord.AllowedMentions(everyone=True),
+        )
         state["last_posted_price"] = market.current
         save_state(state)
         log.info("Posted gold price %s", market.current)

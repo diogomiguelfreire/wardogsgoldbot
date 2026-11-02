@@ -12,11 +12,12 @@ import aiohttp
 import discord
 from dotenv import load_dotenv
 
-from message import build_message, load_state, save_state
+from message import build_message, check_alert, load_state, save_state
 
 load_dotenv()
 CHART_DAYS = int(os.getenv("CHART_DAYS") or "30")
 ONLY_ON_CHANGE = (os.getenv("ONLY_POST_ON_CHANGE") or "false").lower() == "true"
+ALERT_BELOW = int(os.getenv("ALERT_BELOW") or "200000")
 
 
 async def main(dry_run: bool) -> None:
@@ -30,9 +31,13 @@ async def main(dry_run: bool) -> None:
             print(f"Price unchanged at {market.current:,}, skipping post")
             return
 
+        alert = check_alert(market.current, state, ALERT_BELOW)
+
         if dry_run:
             with open("gold_preview.png", "wb") as f:
                 f.write(file.fp.read())
+            if alert:
+                print(alert)
             print(embed.description)
             for field in embed.fields:
                 print(f"  {field.name}: {field.value}")
@@ -40,7 +45,14 @@ async def main(dry_run: bool) -> None:
             return
 
         webhook = discord.Webhook.from_url(os.environ["DISCORD_WEBHOOK_URL"], session=session)
-        await webhook.send(embed=embed, file=file, username="WARDOGS Gold Price", wait=True)
+        await webhook.send(
+            content=alert,
+            embed=embed,
+            file=file,
+            username="WARDOGS Gold Price",
+            allowed_mentions=discord.AllowedMentions(everyone=True),
+            wait=True,
+        )
 
     state["last_posted_price"] = market.current
     save_state(state)

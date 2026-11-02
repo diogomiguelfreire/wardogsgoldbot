@@ -71,6 +71,16 @@ Posts go out at minute :00 of every hour (UTC). The bot only posts while it is r
 | `DISCORD_WEBHOOK_URL` | webhook only | Webhook that `post_once.py` posts to |
 | `CHART_DAYS` | `30` | Days shown in the main chart |
 | `ONLY_POST_ON_CHANGE` | `false` | Skip the hourly post when the price hasn't changed |
+| `ALERT_BELOW` | `200000` | Ping `@everyone` when the price drops below this. `0` turns it off |
+
+## Low-price alert
+
+When the price drops below `ALERT_BELOW` (default 200,000), the hourly post includes an `@everyone` ping.
+It pings **once per drop**. While the price stays low, the posts go out without a ping. Once the price climbs back above the limit, the next drop below it pings again.
+
+If the ping shows as plain text and doesn't notify anyone, the webhook isn't allowed to mention everyone in that channel.
+In Discord, go to channel settings → *Permissions* → `@everyone` role and allow **Mention @everyone, @here, and All Roles**.
+That setting also lets regular members ping `@everyone` in that channel. A channel where only admins can talk, such as an announcements channel, avoids that.
 
 ## Files
 
