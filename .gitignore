@@ -1,0 +1,5 @@
+.env
+.venv/
+state.json
+gold_preview.png
+__pycache__/
